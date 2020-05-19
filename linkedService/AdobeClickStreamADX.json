@@ -1,0 +1,22 @@
+{
+	"name": "AdobeClickStreamADX",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureDataExplorer",
+		"typeProperties": {
+			"endpoint": "https://aldadx.australiaeast.kusto.windows.net",
+			"tenant": "72f988bf-86f1-41af-91ab-2d7cd011db47",
+			"servicePrincipalId": "8c203cf5-d4fc-4b03-a8b4-12f16ef86b72",
+			"servicePrincipalKey": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "AdobeClickStreamKV",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "AdobeClickStreamADX"
+			},
+			"database": "learningds"
+		}
+	}
+}

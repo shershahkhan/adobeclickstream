@@ -1,0 +1,11 @@
+{
+	"name": "AdobeClickStreamKV",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureKeyVault",
+		"typeProperties": {
+			"baseUrl": "https://AdobeClickStreamKV.vault.azure.net/"
+		}
+	}
+}

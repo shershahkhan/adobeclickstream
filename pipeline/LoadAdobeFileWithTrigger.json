@@ -1,0 +1,167 @@
+{
+	"name": "LoadAdobeFileWithTrigger",
+	"properties": {
+		"activities": [
+			{
+				"name": "RunIngestCommand",
+				"type": "AzureDataExplorerCommand",
+				"dependsOn": [
+					{
+						"activity": "SetCreationDate",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "GetAccountKeyFromKV",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "SetFolderPath",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "SetContainerName",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"command": {
+						"value": ".ingest into table @{pipeline().parameters.tableName} (h'abfss://@{variables('containerName')}@{pipeline().parameters.storageName}.dfs.core.windows.net/@{variables('folderPath')}/@{pipeline().parameters.fileName};@{activity('GetAccountKeyFromKV').output.value}') with (format='tsve',ingestIfNotExists = '[\"@{pipeline().parameters.fileName}\"]', tags = '[\"ingest-by:@{pipeline().parameters.fileName}\"]',creationTime='@{variables('inputFileDateTime')}')",
+						"type": "Expression"
+					},
+					"commandTimeout": "00:20:00"
+				},
+				"linkedServiceName": {
+					"referenceName": "AdobeClickStreamADX",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "SetCreationDate",
+				"description": "Will set correct Creation Date even for historical load",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "inputFileDateTime",
+					"value": {
+						"value": "@substring(split(pipeline().parameters.fileName,'_')[1],0,10)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "GetAccountKeyFromKV",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": true,
+					"secureInput": true
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "https://@{pipeline().parameters.azureKeyVaultName}.vault.azure.net/secrets/@{pipeline().parameters.azureKVKeyName}/?api-version=7.0",
+						"type": "Expression"
+					},
+					"method": "GET",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "SetFolderPath",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "folderPath",
+					"value": {
+						"value": "@substring(\npipeline().parameters.folderPath,\nadd(indexof(pipeline().parameters.folderPath,'/'),1),\nsub(length(pipeline().parameters.folderPath),add(indexof(pipeline().parameters.folderPath,'/'),1))\n)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "SetContainerName",
+				"description": "Set the correctly formatted storage name and container name",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "containerName",
+					"value": {
+						"value": "@concat(split(pipeline().parameters.folderPath,'/')[0],'@')",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"concurrency": 5,
+		"parameters": {
+			"folderPath": {
+				"type": "string",
+				"defaultValue": "adobe/clickstream/2015/07/01"
+			},
+			"fileName": {
+				"type": "string",
+				"defaultValue": "01-zwitchdev_2015-07-01.tsv.gz"
+			},
+			"tableName": {
+				"type": "string",
+				"defaultValue": "adobeclickstream"
+			},
+			"storageName": {
+				"type": "string",
+				"defaultValue": "databricksadlsgen2"
+			},
+			"azureKeyVaultName": {
+				"type": "string",
+				"defaultValue": "AdobeClickStreamKV"
+			},
+			"azureKVKeyName": {
+				"type": "string",
+				"defaultValue": "AdobeStorageAccount"
+			}
+		},
+		"variables": {
+			"inputFileDateTime": {
+				"type": "String",
+				"defaultValue": "2015-07-01"
+			},
+			"folderPath": {
+				"type": "String"
+			},
+			"containerName": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "01_Incremental"
+		},
+		"annotations": [
+			"@{pipeline().parameters.fileName}"
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
